@@ -1,226 +1,171 @@
+'use client'
+
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { notFound } from 'next/navigation'
-import { cookies } from 'next/headers'
-import { jwtVerify } from 'jose'
-import categoriesData from '@/data/categories.json'
-import { readCategoryData } from '@/lib/data'
+import { useParams } from 'next/navigation'
 
-const secret = new TextEncoder().encode(process.env.EXEC_COOKIE_SECRET)
+export default function ExecIssuePage() {
+  const params = useParams()
+  const [issue, setIssue] = useState<any>(null)
+  const [category, setCategory] = useState<any>(null)
+  const [scrolled, setScrolled] = useState(false)
+  const [notFound, setNotFound] = useState(false)
 
-export default async function ExecCategoryPage({
-  params,
-}: {
-  params: { category: string }
-}) {
-  const category = categoriesData.find(c => c.id === params.category)
-  if (!category || !category.exec) notFound()
+  useEffect(() => {
+    async function loadIssue() {
+      const catRes = await fetch('/api/category/' + params.category)
+      const catData = await catRes.json()
+      setCategory(catData.category)
+      const issueRes = await fetch('/api/issue/' + params.category + '/' + params.id)
+      if (!issueRes.ok) { setNotFound(true); return }
+      const issueData = await issueRes.json()
+      setIssue(issueData)
+    }
+    loadIssue()
+  }, [params])
 
-  const token = cookies().get('exec_token')?.value
-  let user: any = null
-  try {
-    const { payload } = await jwtVerify(token!, secret)
-    user = payload
-  } catch {
-    notFound()
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 60)
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
+  if (notFound) {
+    return (
+      <main style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <p style={{ color: 'var(--gold)', fontFamily: 'Georgia, serif', fontSize: '1.2rem' }}>
+          Issue not found or access denied.
+        </p>
+      </main>
+    )
   }
 
-  const issues = await readCategoryData(params.category)
+  if (!issue) {
+    return (
+      <main style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <p style={{ color: 'rgba(202,209,131,0.5)', fontFamily: 'Georgia, serif' }}>Loading...</p>
+      </main>
+    )
+  }
 
   return (
-    <main style={{ minHeight: '100vh', padding: '2rem' }}>
-      {/* Header */}
-      <header style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: '3rem',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+    <main style={{ minHeight: '100vh', paddingTop: '120px' }}>
+      <header
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 100,
+          padding: scrolled ? '0.75rem 2rem' : '1.5rem 2rem',
+          background: scrolled ? 'rgba(61, 2, 36, 0.85)' : 'transparent',
+          backdropFilter: scrolled ? 'blur(20px)' : 'none',
+          WebkitBackdropFilter: scrolled ? 'blur(20px)' : 'none',
+          borderBottom: scrolled ? '1px solid rgba(202, 209, 131, 0.2)' : 'none',
+          transition: 'all 0.4s ease',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <Link href="/categories">
             <Image
               src="/gzt_log.png"
               alt="Vilares Edu Gazette"
-              width={72}
-              height={72}
-              style={{ borderRadius: '12px', cursor: 'pointer' }}
+              width={scrolled ? 48 : 64}
+              height={scrolled ? 48 : 64}
+              style={{ borderRadius: '10px', cursor: 'pointer', transition: 'all 0.4s ease' }}
             />
           </Link>
-          <div style={{
-            width: '1px',
-            height: '48px',
-            background: 'rgba(202, 209, 131, 0.4)',
-          }} />
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{ color: 'var(--gold)', fontSize: '0.9rem' }}>★</span>
-              <h1 style={{
-                fontSize: 'clamp(1.2rem, 3vw, 2rem)',
-                color: 'var(--white)',
-                fontFamily: 'Georgia, serif',
-                letterSpacing: '0.05em',
-              }}>
-                {category.label}
-              </h1>
+          {scrolled && (
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <span style={{ color: 'var(--gold)', fontSize: '0.75rem' }}>★</span>
+                <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                  {category?.label}
+                </p>
+              </div>
+              <p style={{ color: 'var(--white)', fontSize: '0.95rem', fontFamily: 'Georgia, serif', fontWeight: 'bold' }}>
+                {issue.id} — {issue.title}
+              </p>
             </div>
-            <p style={{
-              color: 'rgba(202, 209, 131, 0.5)',
-              fontSize: '0.75rem',
-              letterSpacing: '0.1em',
-              textTransform: 'uppercase',
-              marginTop: '0.25rem',
-            }}>
-              Executive Access
-            </p>
-          </div>
+          )}
         </div>
-
-        {/* Logged in user */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.75rem',
-          background: 'rgba(202, 209, 131, 0.08)',
-          border: '1px solid rgba(202, 209, 131, 0.2)',
-          borderRadius: '12px',
-          padding: '0.5rem 1rem',
-        }}>
-          <div>
-            <p style={{
-              color: 'var(--white)',
+        {scrolled && (
+          
+            href={issue.pdf}
+            download
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              background: 'rgba(202, 209, 131, 0.15)',
+              border: '1px solid rgba(202, 209, 131, 0.4)',
+              borderRadius: '8px',
+              padding: '0.5rem 1rem',
+              color: 'var(--gold)',
+              textDecoration: 'none',
               fontSize: '0.85rem',
               fontFamily: 'Georgia, serif',
-            }}>
-              {user?.name as string}
-            </p>
-            <p style={{
-              color: 'rgba(202, 209, 131, 0.5)',
-              fontSize: '0.7rem',
-              letterSpacing: '0.05em',
-            }}>
-              {user?.role as string}
-            </p>
-          </div>
-          <Link
-            href="/api/auth/logout"
-            style={{
-              color: 'rgba(255,100,100,0.7)',
-              fontSize: '0.75rem',
-              textDecoration: 'none',
-              marginLeft: '0.5rem',
             }}
           >
-            Logout
-          </Link>
-        </div>
+            ↓ Download this issue
+          </a>
+        )}
       </header>
 
-      {/* Issues Grid */}
-      {issues.length === 0 ? (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          minHeight: '40vh',
-        }}>
-          <p style={{
-            color: 'rgba(202, 209, 131, 0.5)',
-            fontSize: '1.1rem',
-            fontFamily: 'Georgia, serif',
-          }}>
-            No issues published yet.
+      <div style={{ maxWidth: '900px', margin: '0 auto', padding: '0 2rem 2rem' }}>
+        <div style={{ marginBottom: '1.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+            <span style={{ color: 'var(--gold)', fontSize: '0.85rem' }}>★</span>
+            <span style={{ color: 'rgba(202, 209, 131, 0.5)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+              Executive Access
+            </span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '1rem', marginBottom: '0.5rem' }}>
+            <span style={{ color: 'var(--white)', fontSize: '1.3rem', fontWeight: 'bold', fontFamily: 'Georgia, serif' }}>
+              {issue.id}
+            </span>
+            <span style={{ color: 'var(--gold)', fontSize: '1.3rem', fontFamily: 'Georgia, serif' }}>
+              {issue.title}
+            </span>
+          </div>
+          <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem', letterSpacing: '0.05em' }}>
+            Issued date: {issue.date}
           </p>
+          
+            href={issue.pdf}
+            download
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              marginTop: '1rem',
+              background: 'rgba(202, 209, 131, 0.12)',
+              border: '1px solid rgba(202, 209, 131, 0.35)',
+              borderRadius: '8px',
+              padding: '0.5rem 1.25rem',
+              color: 'var(--gold)',
+              textDecoration: 'none',
+              fontSize: '0.85rem',
+              fontFamily: 'Georgia, serif',
+            }}
+          >
+            ↓ Download this issue
+          </a>
         </div>
-      ) : (
-        <div style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          justifyContent: 'center',
-          gap: '1.5rem',
-          maxWidth: '1200px',
-          margin: '0 auto',
-        }}>
-          {issues.map((issue: any) => (
-            <Link
-              key={issue.id}
-              href={`/exec/${params.category}/${issue.id}`}
-              style={{ textDecoration: 'none' }}
-            >
-              <div style={{
-                width: '200px',
-                background: 'rgba(102, 3, 60, 0.35)',
-                backdropFilter: 'blur(20px)',
-                WebkitBackdropFilter: 'blur(20px)',
-                border: '1px solid rgba(202, 209, 131, 0.3)',
-                borderRadius: '16px',
-                overflow: 'hidden',
-                cursor: 'pointer',
-                transition: 'all 0.3s ease',
-                boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
-              }}
-              onMouseEnter={e => {
-                const el = e.currentTarget
-                el.style.transform = 'translateY(-6px)'
-                el.style.boxShadow = '0 12px 36px rgba(0,0,0,0.5)'
-                el.style.borderColor = 'rgba(202, 209, 131, 0.7)'
-              }}
-              onMouseLeave={e => {
-                const el = e.currentTarget
-                el.style.transform = 'translateY(0)'
-                el.style.boxShadow = '0 4px 24px rgba(0,0,0,0.3)'
-                el.style.borderColor = 'rgba(202, 209, 131, 0.3)'
-              }}
-              >
-                <div style={{
-                  padding: '0.75rem 1rem 0.5rem',
-                  borderBottom: '1px solid rgba(202, 209, 131, 0.2)',
-                }}>
-                  <p style={{
-                    color: 'rgba(255,255,255,0.5)',
-                    fontSize: '0.7rem',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.1em',
-                    marginBottom: '0.25rem',
-                  }}>
-                    {category.label} No.
-                  </p>
-                  <p style={{
-                    color: 'var(--white)',
-                    fontSize: '1.1rem',
-                    fontWeight: 'bold',
-                    fontFamily: 'Georgia, serif',
-                  }}>
-                    {issue.id}
-                  </p>
-                </div>
-                <div style={{
-                  padding: '0.75rem 1rem',
-                  minHeight: '80px',
-                  background: 'linear-gradient(180deg, rgba(202,209,131,0.08) 0%, rgba(202,209,131,0.18) 100%)',
-                }}>
-                  <p style={{
-                    color: 'var(--gold)',
-                    fontSize: '0.9rem',
-                    fontFamily: 'Georgia, serif',
-                    lineHeight: '1.4',
-                  }}>
-                    {issue.title}
-                  </p>
-                </div>
-                <div style={{ padding: '0.5rem 1rem 0.75rem' }}>
-                  <p style={{
-                    color: 'rgba(255,255,255,0.4)',
-                    fontSize: '0.7rem',
-                    letterSpacing: '0.05em',
-                  }}>
-                    Issued date: {issue.date}
-                  </p>
-                </div>
-              </div>
-            </Link>
-          ))}
+
+        <div style={{ border: '1px solid rgba(202, 209, 131, 0.25)', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
+          <iframe
+            src={issue.pdf}
+            width="100%"
+            height="800px"
+            style={{ display: 'block', border: 'none' }}
+          />
         </div>
-      )}
+      </div>
     </main>
   )
 }
