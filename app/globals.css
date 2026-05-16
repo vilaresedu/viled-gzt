@@ -1,0 +1,58 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --plum: #66033C;
+  --plum-dark: #3d0224;
+  --plum-light: #8a0550;
+  --gold: #CAD183;
+  --gold-dim: #b8bf6e;
+  --white: #ffffff;
+  --glass-bg: rgba(102, 3, 60, 0.15);
+  --glass-border: rgba(202, 209, 131, 0.3);
+  --glass-blur: blur(16px);
+}
+
+html, body {
+  min-height: 100vh;
+  font-family: 'Georgia', serif;
+  background: var(--plum-dark);
+  color: var(--white);
+  overflow-x: hidden;
+}
+
+/* Animated background */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: 
+    radial-gradient(ellipse at 20% 20%, rgba(102, 3, 60, 0.8) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 80%, rgba(202, 209, 131, 0.15) 0%, transparent 60%),
+    radial-gradient(ellipse at 50% 50%, rgba(61, 2, 36, 1) 0%, transparent 100%);
+  z-index: -1;
+}
+
+/* Glass utility */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--plum-dark);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--gold-dim);
+  border-radius: 3px;
+}
