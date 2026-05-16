@@ -1,0 +1,8 @@
+[
+  { "id": "circular", "label": "Circular", "exec": false },
+  { "id": "iulaan", "label": "Iulaan", "exec": false },
+  { "id": "gavaaidhu", "label": "Gavaaidhu", "exec": false },
+  { "id": "ethereyge-iulaan", "label": "Ethereyge Iulaan", "exec": true },
+  { "id": "board-ninmunthah", "label": "Board Ninmunthah", "exec": true },
+  { "id": "ehenihen", "label": "Ehenihen", "exec": false }
+]
